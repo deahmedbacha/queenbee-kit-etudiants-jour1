@@ -1,12 +1,16 @@
 {
   "info": {
-    "name": "Queen Bee API v0 - TP 2",
+    "name": "Queen Bee API v0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000"
+    },
+    {
+      "key": "inspectionId",
+      "value": ""
     }
   ],
   "item": [
@@ -19,6 +23,22 @@
     {"name":"Mesure sans timestamp (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"weight_kg\":36.84}"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
     {"name":"Mesure sans weight_kg (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"timestamp\":\"2026-10-31T10:15:00Z\"}"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
     {"name":"hive_id différent du chemin (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"hive_id\":\"SN-CASA-002\",\"timestamp\":\"2026-10-31T10:15:00Z\",\"weight_kg\":36}"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
-    {"name":"Mesure sur ruche inconnue (404)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"timestamp\":\"2026-10-31T10:15:00Z\",\"weight_kg\":36.84}"},"url":"{{baseUrl}}/api/hives/XX-NOPE-999/measures"}}
+    {"name":"Mesure sur ruche inconnue (404)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"timestamp\":\"2026-10-31T10:15:00Z\",\"weight_kg\":36.84}"},"url":"{{baseUrl}}/api/hives/XX-NOPE-999/measures"}},
+    {"name":"Mesures, page 1","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
+    {"name":"Mesures, page 2 (offset=50)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001/measures?offset=50"}},
+    {"name":"limit=0 (400)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001/measures?limit=0"}},
+    {"name":"limit=501 (400)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001/measures?limit=501"}},
+    {"name":"limit=abc (400)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001/measures?limit=abc"}},
+    {"name":"offset=-1 (400)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001/measures?offset=-1"}},
+    {"name":"Mesures d'une ruche inconnue (404)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/XX-NOPE-999/measures"}},
+    {"name":"Inspections d'une ruche","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001/inspections"}},
+    {"name":"Inspections d'une ruche inconnue (404)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/XX-NOPE-999/inspections"}},
+    {"name":"Créer une inspection (201)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"id\":\"{{inspectionId}}\",\"inspected_at\":\"2026-11-18T09:00:00Z\",\"colony_status\":\"forte\",\"queen_present\":true,\"observations\":\"RAS\"}"},"url":"{{baseUrl}}/api/hives/SN-CASA-002/inspections"},"event":[{"listen":"prerequest","script":{"exec":["pm.collectionVariables.set(\"inspectionId\", pm.variables.replaceIn(\"{{$guid}}\"));"]}}]},
+    {"name":"Même inspection renvoyée (409)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"id\":\"{{inspectionId}}\",\"inspected_at\":\"2026-11-18T09:00:00Z\",\"colony_status\":\"forte\"}"},"url":"{{baseUrl}}/api/hives/SN-CASA-002/inspections"}},
+    {"name":"id qui n'est pas un UUID (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"id\":\"pas-un-uuid\",\"inspected_at\":\"2026-11-18T09:00:00Z\",\"colony_status\":\"forte\"}"},"url":"{{baseUrl}}/api/hives/SN-CASA-002/inspections"}},
+    {"name":"colony_status invalide (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"id\":\"{{$guid}}\",\"inspected_at\":\"2026-11-18T09:00:00Z\",\"colony_status\":\"excellente\"}"},"url":"{{baseUrl}}/api/hives/SN-CASA-002/inspections"}},
+    {"name":"Inspection sur ruche inconnue (404)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"id\":\"{{$guid}}\",\"inspected_at\":\"2026-11-18T09:00:00Z\",\"colony_status\":\"forte\"}"},"url":"{{baseUrl}}/api/hives/XX-NOPE-999/inspections"}},
+    {"name":"Route inconnue (404)","request":{"method":"GET","url":"{{baseUrl}}/api/nope"}},
+    {"name":"JSON mal formé (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"timestamp\":"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}}
   ]
 }
