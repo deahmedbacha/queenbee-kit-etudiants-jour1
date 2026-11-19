@@ -33,3 +33,37 @@ Serveur relancé sans argument, sur le fichier d'une journée :
 Fichier d'une journée, lecture bloquante puis en flux :
 
 ![Sonde avec le fichier d'une journée](Screenshots/tp1-1-jour.png)
+
+
+
+
+
+
+## TP 2 : journalisation
+
+Nous avons gardé notre intergiciel `requestLogger` plutôt que `morgan("dev")` : il donne la même information (méthode, URL, statut, durée), ajoute la date et ne dépend d'aucun paquet.
+
+
+### Captures d'exécution
+
+Exécution de la collection : chaque requête renvoie le code attendu.
+
+![Exécution de la collection](Screenshots/tp2-collection.png)
+
+![Résumé : 10 requêtes, 0 échec](Screenshots/tp2-collection-resume.png)
+
+Filtre par site : seules les ruches de SN-CASA.
+
+![Filtre par site](Screenshots/tp2-filtre-site.png)
+
+Ruche inconnue : 404.
+
+![Ruche inconnue](Screenshots/tp2-404.png)
+
+Création d'une mesure : 201.
+
+![Création d'une mesure](Screenshots/tp2-201.png)
+
+Journal du serveur : une ligne par requête.
+
+![Journal du serveur](Screenshots/tp2-journal.png)

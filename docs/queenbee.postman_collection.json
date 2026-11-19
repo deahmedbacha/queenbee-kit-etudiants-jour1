@@ -1,0 +1,24 @@
+{
+  "info": {
+    "name": "Queen Bee API v0 - TP 2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {"name":"Health","request":{"method":"GET","url":"{{baseUrl}}/health"}},
+    {"name":"Toutes les ruches","request":{"method":"GET","url":"{{baseUrl}}/api/hives"}},
+    {"name":"Ruches de SN-CASA","request":{"method":"GET","url":"{{baseUrl}}/api/hives?site_id=SN-CASA"}},
+    {"name":"Une ruche","request":{"method":"GET","url":"{{baseUrl}}/api/hives/SN-CASA-001"}},
+    {"name":"Ruche inconnue (404)","request":{"method":"GET","url":"{{baseUrl}}/api/hives/XX-NOPE-999"}},
+    {"name":"Créer une mesure (201)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"hive_id\":\"SN-CASA-001\",\"site_id\":\"SN-CASA\",\"timestamp\":\"2026-10-31T10:00:00Z\",\"weight_kg\":36.84,\"battery_pct\":88}"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
+    {"name":"Mesure sans timestamp (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"weight_kg\":36.84}"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
+    {"name":"Mesure sans weight_kg (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"timestamp\":\"2026-10-31T10:15:00Z\"}"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
+    {"name":"hive_id différent du chemin (400)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"hive_id\":\"SN-CASA-002\",\"timestamp\":\"2026-10-31T10:15:00Z\",\"weight_kg\":36}"},"url":"{{baseUrl}}/api/hives/SN-CASA-001/measures"}},
+    {"name":"Mesure sur ruche inconnue (404)","request":{"method":"POST","header":[{"key":"Content-Type","value":"application/json"}],"body":{"mode":"raw","raw":"{\"timestamp\":\"2026-10-31T10:15:00Z\",\"weight_kg\":36.84}"},"url":"{{baseUrl}}/api/hives/XX-NOPE-999/measures"}}
+  ]
+}
