@@ -1,10 +1,11 @@
 import express from "express";
+import { requestLogger } from "./middlewares/requestLogger.js";
 
 const app = express();
+app.use(requestLogger);  // journalise toutes les requêtes
 app.use(express.json()); // lit les corps JSON ; toujours avant les routes
 
 // Quelques ruches de deux sites, copiées du jeu de données.
-// Pas encore de base de données : de simples tableaux en mémoire.
 const hives = [
   { id: "SN-CASA-001", site_id: "SN-CASA", status: "active" },
   { id: "SN-CASA-002", site_id: "SN-CASA", status: "active" },
