@@ -30,9 +30,17 @@ app.get("/api/hives", (req, res) => {
   res.json(hives.filter((hive) => hive.site_id === site_id));
 });
 
+// GET /api/hives/:id : une ruche, ou 404 si elle n'existe pas.
+app.get("/api/hives/:id", (req, res) => {
+  const hive = hives.find((h) => h.id === req.params.id);
+
+  if (!hive) {
+    return res.status(404).json({ error: `Aucune ruche ne porte l'identifiant ${req.params.id}.` });
+  }
+
+  res.json(hive);
+});
+
 app.listen(3000, () => {
   console.log("API Queen Bee sur http://localhost:3000");
 });
-
-
-
