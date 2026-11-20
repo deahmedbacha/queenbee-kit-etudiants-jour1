@@ -17,7 +17,7 @@ export function createApp({ hivesRepository, measuresRepository, inspectionsRepo
 
   const app = express();
   app.use(requestLogger);  // journalise toutes les requêtes
-  app.use(express.json()); // lit les corps JSON ; toujours avant les routes
+  app.use(express.json({ limit: "1mb" })); // lit les corps JSON ; toujours avant les routes
 
   app.get("/health", (req, res) => {
     res.json({ status: "ok" });
