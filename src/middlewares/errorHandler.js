@@ -10,6 +10,14 @@ export function notFoundHandler(req, res) {
 // obligatoires : c'est à eux qu'Express reconnaît un intergiciel d'erreur.
 export function errorHandler(err, req, res, next) {
   if (err instanceof AppError) {
+    if (err.status === 401 || err.status === 403) {
+      console.warn(
+        `[accès refusé] ${err.status} ${req.method} ${req.originalUrl} ip=${req.ip} utilisateur=${req.user?.id ?? "-"}`,
+      );
+    }
+    if (err.status === 401) {
+      res.set("WWW-Authenticate", 'Bearer realm="queenbee"'); // schéma attendu (RFC 6750)
+    }
     return sendProblem(res, err.status, err.message);
   }
 

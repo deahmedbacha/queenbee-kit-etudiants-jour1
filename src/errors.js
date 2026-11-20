@@ -12,6 +12,20 @@ export class ValidationError extends AppError {
   }
 }
 
+// 401 : « je ne sais pas qui vous êtes » (jeton absent, invalide ou expiré)
+export class UnauthorizedError extends AppError {
+  constructor(message) {
+    super(message, 401);
+  }
+}
+
+// 403 : « je sais qui vous êtes, mais vous n'avez pas le droit »
+export class ForbiddenError extends AppError {
+  constructor(message) {
+    super(message, 403);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message) {
     super(message, 404);

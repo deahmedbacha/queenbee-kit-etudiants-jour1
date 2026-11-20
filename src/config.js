@@ -1,7 +1,6 @@
 // Lit la configuration dans l'environnement (process.env), une seule fois, au démarrage.
 // Une valeur invalide arrête le démarrage avec un message clair.
 const NODE_ENVS = ["development", "production", "test"];
-const STORAGES = ["postgres", "memory"];
 
 export function loadConfig(env = process.env) {
   const erreurs = [];
@@ -17,11 +16,6 @@ export function loadConfig(env = process.env) {
     erreurs.push(`NODE_ENV doit valoir ${NODE_ENVS.join(", ")} (reçu : "${nodeEnv}").`);
   }
 
-  const storage = env.STORAGE ?? "postgres";
-  if (!STORAGES.includes(storage)) {
-    erreurs.push(`STORAGE doit valoir ${STORAGES.join(" ou ")} (reçu : "${storage}").`);
-  }
-
   const dbPortTexte = env.DB_PORT ?? "5432";
   const dbPort = Number(dbPortTexte);
   if (!/^\d+$/.test(dbPortTexte) || dbPort < 1 || dbPort > 65535) {
@@ -35,8 +29,20 @@ export function loadConfig(env = process.env) {
   }
 
   const dbPassword = env.DB_PASSWORD ?? "";
-  if (storage === "postgres" && dbPassword.trim() === "") {
-    erreurs.push("DB_PASSWORD est obligatoire lorsque STORAGE vaut postgres.");
+  if (dbPassword.trim() === "") {
+    erreurs.push("DB_PASSWORD est obligatoire.");
+  }
+
+  const accessSecret = env.JWT_ACCESS_SECRET ?? "";
+  const refreshSecret = env.JWT_REFRESH_SECRET ?? "";
+  if (accessSecret.trim() === "") {
+    erreurs.push("JWT_ACCESS_SECRET est obligatoire.");
+  }
+  if (refreshSecret.trim() === "") {
+    erreurs.push("JWT_REFRESH_SECRET est obligatoire.");
+  }
+  if (accessSecret.trim() !== "" && accessSecret === refreshSecret) {
+    erreurs.push("JWT_ACCESS_SECRET et JWT_REFRESH_SECRET doivent être différents.");
   }
 
   if (erreurs.length > 0) {
@@ -46,7 +52,6 @@ export function loadConfig(env = process.env) {
   return {
     port,
     nodeEnv,
-    storage,
     db: {
       host: env.DB_HOST ?? "localhost",
       port: dbPort,
@@ -54,6 +59,14 @@ export function loadConfig(env = process.env) {
       password: dbPassword,
       database: env.DB_NAME ?? "queenbee",
       poolMax,
+    },
+    auth: {
+      accessSecret,
+      refreshSecret,
+      accessTtl: env.JWT_ACCESS_TTL ?? "15m",
+      refreshTtl: env.JWT_REFRESH_TTL ?? "7d",
+      maxFailedLogins: 5,
+      lockMinutes: 15,
     },
   };
 }

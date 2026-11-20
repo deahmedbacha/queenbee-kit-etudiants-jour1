@@ -3,6 +3,8 @@
 // les erreurs de ce code. detail explique ce qui s'est passé pour cette requête.
 const TITLES = {
   400: "Requête invalide",
+  401: "Authentification requise",
+  403: "Accès refusé",
   404: "Ressource introuvable",
   409: "Conflit",
   413: "Contenu trop volumineux",
