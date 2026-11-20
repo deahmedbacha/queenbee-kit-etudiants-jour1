@@ -2,6 +2,29 @@ import Joi from "joi";
 
 const COLONY_STATUSES = ["forte", "normale", "faible", "morte"];
 
+// tlds: { allow: false } : sinon les adresses en .test du jeu de données seraient refusées.
+const email = Joi.string().email({ tlds: { allow: false } }).max(254);
+
+export const registerSchema = Joi.object({
+  email: email.required(),
+  password: Joi.string().min(12).max(72).required(), // bcrypt ignore tout au-delà de 72 octets
+  role: Joi.string().valid("apiculteur", "coordinateur", "gestionnaire", "admin").required(),
+  site_id: Joi.when("role", {
+    is: Joi.valid("apiculteur", "coordinateur"),
+    then: Joi.string().required(),
+    otherwise: Joi.forbidden(),
+  }),
+});
+
+export const loginSchema = Joi.object({
+  email: email.required(),
+  password: Joi.string().required(),
+});
+
+export const refreshSchema = Joi.object({
+  refresh_token: Joi.string().required(),
+});
+
 // Les paramètres de requête arrivent en chaînes : Joi les convertit et applique les défauts.
 export const paginationSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(500).default(50),

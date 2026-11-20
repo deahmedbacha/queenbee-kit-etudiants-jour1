@@ -211,3 +211,41 @@ Traduction du doublon PostgreSQL (`23505` $\rightarrow$ `409`), rejet d'un champ
 Exécution des tests unitaires (`test/measures.service.test.js` et `test/validators.test.js`) :
 
 ![Tests TP 6](Screenshots/tp6-tests.png)
+
+
+## TP 7 : authentification et autorisation
+
+L'authentification repose sur deux jetons JWT (`HS256`, émetteur `queenbee-api`, audience `queenbee`) signés avec deux secrets distincts (`JWT_ACCESS_SECRET` pour 15 min, `JWT_REFRESH_SECRET` pour 7 jours) et portant chacun un champ `type` (`"access"` ou `"refresh"`).
+
+- Une adresse inconnue compare le mot de passe fourni à une empreinte factice (`DUMMY_HASH`) et renvoie le même message 401 (`« Adresse e-mail ou mot de passe incorrect. »`) qu'un mot de passe erroné afin d'empêcher l'énumération de comptes.
+- Au 5e échec consécutif (`recordFailedLogin`), le compte est verrouillé pendant 15 minutes (`locked_until`).
+- Le contrôle d'accès aux ruches est centralisé dans `canAccessHive(user, hive)` (`src/services/hives.service.js`), en vérifiant toujours l'existence de la ruche (`404`) avant les droits (`403`).
+
+### Journal des requêtes interdites
+
+Chaque refus `401` ou `403` est journalisé par `errorHandler` sous la forme `[accès refusé] <code_http> <méthode> <url> ip=<ip> utilisateur=<id|->` :
+
+| Cas testé | Connecté en | Requête | Code attendu | Code obtenu | Détail / Trace serveur |
+| --- | --- | --- | --- | --- | --- |
+| Ressource d'un autre site | `coord.sn-casa@queenbee.test` | `GET /api/hives?site_id=CI-AGBO` | `403` | `403` | `Vous n'avez pas accès au site CI-AGBO.`<br>`[accès refusé] 403 GET /api/hives?site_id=CI-AGBO ip=::1 utilisateur=6acef4aa-ac69-485b-bc57-b521bf72971c` |
+| Rôle insuffisant | `api1.sn-casa@queenbee.test` | `POST /api/hives/SN-CASA-001/measures` | `403` | `403` | `Action réservée aux rôles suivants : admin.`<br>`[accès refusé] 403 POST /api/hives/SN-CASA-001/measures ip=::1 utilisateur=4697f390-71ea-4a9e-9a7e-c69f17145861` |
+| Jeton expiré (`JWT_ACCESS_TTL=10s`) | `api1.sn-casa@queenbee.test` | `GET /api/hives` | `401` | `401` | `Jeton d'accès invalide ou expiré.`<br>`[accès refusé] 401 GET /api/hives ip=::1 utilisateur=-` |
+| Jeton falsifié (payload modifié) | `api1.sn-casa@queenbee.test` | `GET /api/hives` | `401` | `401` | `Jeton d'accès invalide ou expiré.`<br>`[accès refusé] 401 GET /api/hives ip=::1 utilisateur=-` |
+
+### Captures d'exécution
+
+Vérification de l'en-tête `WWW-Authenticate` sans jeton, filtrage des ruches par rôle (`400` admin, `50` coordinateur, `10` apiculteur), distinction `403` / `404` et route `/api/auth/me` :
+
+![Authentification et rôles](Screenshots/tp7-auth-et-roles.png)
+
+Création d'un compte par l'administrateur et blocage automatique au 5e échec de connexion (maintenu même avec le bon mot de passe au 6e essai) :
+
+![Blocage de compte](Screenshots/tp7-blocage-compte.png)
+
+Exécution des quatre requêtes interdites et traces `[accès refusé]` dans le journal du serveur :
+
+![Journal des accès refusés](Screenshots/tp7-journal-acces-refuses.png)
+
+Exécution des tests unitaires incluant `canAccessHive` (`test/hives.service.test.js`) :
+
+![Tests TP 7](Screenshots/tp7-tests.png)

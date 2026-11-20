@@ -1,15 +1,43 @@
-import { NotFoundError } from "../errors.js";
+import { NotFoundError, ForbiddenError } from "../errors.js";
 
-// Service : les règles sur les ruches. Il reçoit son repository, il ne l'importe pas.
+export function canAccessHive(user, hive) {
+  switch (user.role) {
+    case "admin":
+    case "gestionnaire":
+      return true;
+    case "coordinateur":
+      return hive.site_id === user.site_id;
+    case "apiculteur":
+      return hive.owner_id === user.id;
+    default:
+      return false;
+  }
+}
+
 export function createHivesService({ hivesRepository }) {
   return {
-    async listHives({ site_id } = {}) {
-      return hivesRepository.findAll({ site_id });
+    async listHives(user, { site_id } = {}) {
+      if (user.role === "coordinateur") {
+        if (site_id && site_id !== user.site_id) {
+          throw new ForbiddenError(`Vous n'avez pas accès au site ${site_id}.`);
+        }
+        return hivesRepository.findAll({ site_id: user.site_id });
+      }
+      if (user.role === "apiculteur") {
+        return hivesRepository.findAll({ site_id, owner_id: user.id });
+      }
+      return hivesRepository.findAll({ site_id }); // admin, gestionnaire
     },
 
-    async getHive(id) {
+    // L'existence d'abord (404), les droits ensuite (403).
+    async getHive(user, id) {
       const hive = await hivesRepository.findById(id);
-      if (!hive) throw new NotFoundError(`Aucune ruche ne porte l'identifiant ${id}.`);
+      if (!hive) {
+        throw new NotFoundError(`Aucune ruche ne porte l'identifiant ${id}.`);
+      }
+      if (!canAccessHive(user, hive)) {
+        throw new ForbiddenError(`Vous n'avez pas accès à la ruche ${id}.`);
+      }
       return hive;
     },
   };
