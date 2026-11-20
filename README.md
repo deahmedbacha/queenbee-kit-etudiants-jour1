@@ -187,3 +187,27 @@ Tentative d'injection SQL neutralisée par les requêtes paramétrées et vérif
 Comparaison de l'import en masse ligne à ligne (985 ms) et par lot (180 ms) :
 
 ![Import en masse](Screenshots/tp5-import-masse.png)
+
+
+## TP 6 : validation et erreurs
+
+Toutes les entrées (`req.body` et `req.query`) passent désormais par l'intergiciel `validate` (`src/middlewares/validate.js`) appuyé sur les schémas Joi (`src/validators/schemas.js`) et les messages en français (`src/validators/messages.js`), avec `abortEarly: false` pour remonter toutes les erreurs de validation en une seule réponse. Les données converties et complétées par défaut sont rangées dans `req.validated`.
+
+Les erreurs métier héritent de `AppError(message, status)` (`src/errors.js`). L'intergiciel central `errorHandler` (`src/middlewares/errorHandler.js`) traduit :
+- toute instance de `AppError` vers son statut (`400`, `404`, `409`) ;
+- `entity.parse.failed` en `400` et `entity.too.large` (corps > 1 Mo) en `413` ;
+- le code PostgreSQL `23505` (doublon de clé primaire/unique) en `409` (« Cette ressource existe déjà. ») et `23503` / `23514` / `22P02` en `400`, sans jamais divulguer de détail SQL ni de pile d'exécution dans la réponse RFC 9457.
+
+### Captures d'exécution
+
+Validation Joi des mesures (cumul des erreurs de plages physiques, champs obligatoires, paramètre `limit=abc`) :
+
+![Validations Joi](Screenshots/tp6-validations-joi.png)
+
+Traduction du doublon PostgreSQL (`23505` $\rightarrow$ `409`), rejet d'un champ non déclaré (`author_id`) et d'une date d'inspection dans le futur (`2099`) :
+
+![Doublon 409 et validation des inspections](Screenshots/tp6-doublon-409-et-inspections.png)
+
+Exécution des tests unitaires (`test/measures.service.test.js` et `test/validators.test.js`) :
+
+![Tests TP 6](Screenshots/tp6-tests.png)
