@@ -114,3 +114,30 @@ JSON mal formé : 400 au format RFC 9457.
 Création d'une inspection : 201.
 
 ![Création d'une inspection](Screenshots/tp3-inspection-201.png)
+
+
+
+
+## TP 4 : passage en couches
+
+Le code est organisé en couches, sans changement de comportement : la collection donne les mêmes 26 réponses avant et après.
+
+```
+src/
+  app.js                          crée l'application et branche les couches
+  server.js                       démarre le serveur (app.listen)
+  config.js                       lit PORT et NODE_ENV ; une valeur invalide arrête le démarrage
+  errors.js                       NotFoundError, ValidationError, ConflictError
+  routes/hives/hives.router.js    URL et verbes
+  controllers/hives.controller.js lit la requête, choisit la réponse
+  services/                       règles métier (ruches, mesures, inspections)
+  repositories/memory/            données en mémoire
+  middlewares/                    requestLogger.js, errorHandler.js
+  utils/problem.js                sendProblem, format RFC 9457
+test/
+  measures.service.test.js
+```
+
+Chaque service est une fabrique qui reçoit ses dépendances, par exemple `createMeasuresService({ hivesService, measuresRepository })`. Les services lèvent des erreurs métier ; `errorHandler` les traduit en 400, 404 ou 409. Aucun contrôleur n'importe un repository.
+
+Lancement : `cp .env.example .env`, puis `npm run dev`. Tests : `npm test`.

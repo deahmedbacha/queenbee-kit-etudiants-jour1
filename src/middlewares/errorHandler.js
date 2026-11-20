@@ -1,4 +1,5 @@
 import { sendProblem } from "../utils/problem.js";
+import { NotFoundError, ValidationError, ConflictError } from "../errors.js";
 
 // Route inconnue : un 404 au format RFC 9457, au lieu de la page HTML d'Express.
 export function notFoundHandler(req, res) {
@@ -7,10 +8,16 @@ export function notFoundHandler(req, res) {
 
 // Filet de sécurité : toute erreur non traitée arrive ici. Les quatre paramètres sont
 // obligatoires : c'est à eux qu'Express reconnaît un intergiciel d'erreur.
+// Express 5 transmet aussi les erreurs des fonctions async : pas besoin de try/catch.
 export function errorHandler(err, req, res, next) {
   if (err.type === "entity.parse.failed") {
     return sendProblem(res, 400, "Le corps de la requête n'est pas un JSON valide.");
   }
+  // Les erreurs métier levées par les services deviennent un code HTTP ici, et seulement ici.
+  if (err instanceof ValidationError) return sendProblem(res, 400, err.message);
+  if (err instanceof NotFoundError) return sendProblem(res, 404, err.message);
+  if (err instanceof ConflictError) return sendProblem(res, 409, err.message);
+
   console.error(err); // la pile va dans le journal du serveur, jamais dans la réponse
   sendProblem(res, 500, "Une erreur interne est survenue.");
 }
