@@ -50,7 +50,7 @@ export const measureSchema = Joi.object({
   battery_pct: Joi.number().integer().min(0).max(100).allow(null),
 });
 
-export const inspectionSchema = Joi.object({
+const inspectionFields = {
   id: Joi.string().guid().required(),
   hive_id: Joi.string(),
   inspected_at: Joi.date()
@@ -61,4 +61,21 @@ export const inspectionSchema = Joi.object({
   colony_status: Joi.string().valid(...COLONY_STATUSES).required(),
   queen_present: Joi.boolean().allow(null),
   observations: Joi.string().max(2000).allow("", null),
+};
+
+export const inspectionSchema = Joi.object(inspectionFields);
+
+// Dans le lot, chaque inspection précise sa ruche ; version n'est là que pour une modification.
+export const syncSchema = Joi.object({
+  inspections: Joi.array()
+    .items(
+      Joi.object({
+        ...inspectionFields,
+        hive_id: Joi.string().required(),
+        version: Joi.number().integer().min(1),
+      }),
+    )
+    .min(1)
+    .max(500)
+    .required(),
 });

@@ -249,3 +249,35 @@ Exécution des quatre requêtes interdites et traces `[accès refusé]` dans le 
 Exécution des tests unitaires incluant `canAccessHive` (`test/hives.service.test.js`) :
 
 ![Tests TP 7](Screenshots/tp7-tests.png)
+
+
+## TP 8 : synchronisation idempotente
+
+Les écritures de mesures et d'inspections sont désormais **idempotentes** grâce à `ON CONFLICT DO NOTHING` :
+- Un premier envoi crée l'enregistrement et répond `201 Created`.
+- Un rejeu de la même mesure `(hive_id, measured_at)` ou de la même inspection `id` sur la même ruche relit l'enregistrement existant et répond `200 OK` sans créer de doublon (et `409 Conflict` si l'UUID d'inspection appartient déjà à une autre ruche).
+- La route `POST /api/inspections/sync` (réservée aux rôles `apiculteur` et `coordinateur`) synchronise un lot de 1 à 500 inspections une par une, en isolant les erreurs métier par élément (`created`, `unchanged`, `updated`, `conflict`, `rejected`) et en appliquant le **verrouillage optimiste** sur la colonne `version`.
+
+### Règle de conflit retenue : « le serveur l'emporte »
+
+Nous retenons la règle **« le serveur l'emporte »** avec verrouillage optimiste (`WHERE id = $1 AND hive_id = $2 AND version = $7`).
+Lorsqu'un appareil hors connexion envoie une modification avec une `version` périmée, le serveur refuse d'écraser silencieusement la saisie plus récente déjà enregistrée en base.
+Il renvoie le statut `"conflict"` accompagné de l'état actuel du serveur (`current`), afin que l'apiculteur visualise les deux saisies sur son téléphone et décide explicitement quoi conserver.
+
+### Captures d'exécution
+
+Synchronisation en lot (`tp/tp8-sync/lot.json`) envoyée deux fois de suite (`created: 3, rejected: 1` puis `unchanged: 3, rejected: 1`, aucun doublon créé sur `SN-CASA-001`) :
+
+![Synchronisation d'un lot](Screenshots/tp8-sync-lot.png)
+
+Modification avec `version: 1` (`updated`, passe en `version: 2`), détection de conflit au second envoi avec `version: 1` (`conflict`, `current.version: 2`), rejet d'un lot vide (`400`) et d'un administrateur (`403`) :
+
+![Modification et conflit de version](Screenshots/tp8-sync-conflit.png)
+
+Rejeu idempotent d'une mesure individuelle (`201` puis `200`) et d'une inspection individuelle (`201`, `200`, puis `409` sur une autre ruche) :
+
+![Rejeu idempotent](Screenshots/tp8-rejeu-idempotent.png)
+
+Exécution complète de la suite de tests unitaires (11 tests au vert) :
+
+![Tests TP 8](Screenshots/tp8-tests.png)

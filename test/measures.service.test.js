@@ -24,8 +24,14 @@ function createFakeMeasuresRepository() {
   return {
     added,
     async add(measure) {
+      const existing = added.find(
+        (m) => m.hive_id === measure.hive_id && m.timestamp === measure.timestamp,
+      );
+      if (existing) {
+        return { measure: existing, created: false };
+      }
       added.push(measure);
-      return measure;
+      return { measure, created: true };
     },
   };
 }
@@ -34,10 +40,22 @@ test("enregistre une mesure valide", async () => {
   const measuresRepository = createFakeMeasuresRepository();
   const service = createMeasuresService({ hivesService: fakeHivesService, measuresRepository });
 
-  const measure = await service.addMeasure(admin, "SN-CASA-001", validMeasure);
+  const { measure, created } = await service.addMeasure(admin, "SN-CASA-001", validMeasure);
 
+  assert.equal(created, true);
   assert.equal(measure.hive_id, "SN-CASA-001");
   assert.equal(measure.site_id, "SN-CASA");
+  assert.equal(measuresRepository.added.length, 1);
+});
+
+test("une trame reçue deux fois n'est enregistrée qu'une fois", async () => {
+  const measuresRepository = createFakeMeasuresRepository();
+  const service = createMeasuresService({ hivesService: fakeHivesService, measuresRepository });
+
+  await service.addMeasure(admin, "SN-CASA-001", validMeasure);
+  const second = await service.addMeasure(admin, "SN-CASA-001", validMeasure);
+
+  assert.equal(second.created, false);
   assert.equal(measuresRepository.added.length, 1);
 });
 
