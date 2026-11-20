@@ -2,6 +2,10 @@
 
 Lancement de l'API : `npm run dev`, puis elle répond sur `http://localhost:3000`.
 
+CE TRAVAIL EST FAITE PAR :
+- Djamel Eddine AHMED BACHA
+- Yaya Mohamedhen
+
 ## TP 1 : lire les mesures sans bloquer
 
 Les deux routes renvoient les mêmes valeurs : 144 000 mesures et 38,74 kg avec le fichier de 30 jours, 4 800 mesures et 37,87 kg avec celui d'une journée.
@@ -141,3 +145,45 @@ test/
 Chaque service est une fabrique qui reçoit ses dépendances, par exemple `createMeasuresService({ hivesService, measuresRepository })`. Les services lèvent des erreurs métier ; `errorHandler` les traduit en 400, 404 ou 409. Aucun contrôleur n'importe un repository.
 
 Lancement : `cp .env.example .env`, puis `npm run dev`. Tests : `npm test`.
+
+
+## TP 5 : brancher PostgreSQL
+
+L'API lit et écrit désormais dans la base PostgreSQL (`STORAGE=postgres` par défaut) via un pool de connexions (`src/db.js`) et les trois repositories de `src/repositories/postgres/`. Le convertisseur `pg.types.setTypeParser(1700, Number)` garantit que les colonnes `NUMERIC` (`weight_kg`, températures, score acoustique) sont renvoyées en nombres JSON. Les services, contrôleurs et routes restent strictement inchangés (`git diff jour1-fin --stat -- src/services src/controllers src/routes` est vide).
+
+### Insertion en masse (`scripts/import-measures.js`)
+
+| Mode d'insertion | Mesures insérées | Requêtes `INSERT` | Durée (ms) |
+| --- | --- | --- | --- |
+| Ligne à ligne (`ligne --vider`) | 4 800 | 4 800 (hors transaction) | 985 |
+| Par lot (`lot --vider`) | 4 800 | 5 lots de 1 000 max (1 transaction) | 180 |
+
+**1. Quel temps obtenez-vous dans chaque mode ? D'où vient l'écart ?**
+Nous obtenons **985 ms** en insertion ligne à ligne contre **180 ms** en insertion par lot (plus de 5 fois plus rapide). En mode ligne à ligne, PostgreSQL effectue 4 800 allers-retours réseau et valide 4 800 transactions implicites sur disque (`fsync`), alors que le mode par lot n'envoie que 5 requêtes `INSERT` groupées et ne valide sur disque qu'une seule fois lors du `COMMIT`.
+
+**2. Si la 2 001e mesure provoquait une erreur, que resterait-il en base dans chaque mode ?**
+En mode **ligne à ligne**, chaque `INSERT` est validé immédiatement : les **2 000 premières mesures** resteraient enregistrées en base (base à moitié remplie). En mode **par lot**, le bloc `catch` exécute `ROLLBACK` sur la transaction unique : **0 mesure** de l'import ne resterait en base.
+
+**3. Pourquoi la transaction emprunte-t-elle une connexion avec `pool.connect()` au lieu d'appeler `pool.query()` ?**
+`pool.query()` peut répartir chaque requête sur une connexion différente du pool, ce qui briserait la transaction SQL. `pool.connect()` réserve une seule et même connexion dédiée (`client`) du `BEGIN` jusqu'au `COMMIT` ou `ROLLBACK`.
+
+**4. Que se passerait-il si `client.release()` n'était pas dans le `finally`, et qu'une erreur survenait dix fois de suite ?**
+Lors d'une erreur, la connexion empruntée ne serait jamais rendue au pool. Après dix erreurs consécutives (`DB_POOL_MAX=10`), les 10 connexions du pool seraient épuisées et toute nouvelle requête resterait bloquée avant d'échouer au bout de `connectionTimeoutMillis` (5 secondes).
+
+### Captures d'exécution
+
+Vérification de la base PostgreSQL (400 ruches, 1 146 240 mesures, 1 194 inspections) et démarrage du serveur :
+
+![Base PostgreSQL et démarrage](Screenshots/tp5-base-et-demarrage.png)
+
+Lectures en base (`/api/hives`, filtre `?site_id=SN-CASA`, mesures paginées avec `weight_kg` numérique et inspections) :
+
+![Routes PostgreSQL](Screenshots/tp5-routes-postgres.png)
+
+Tentative d'injection SQL neutralisée par les requêtes paramétrées et vérification que les couches `services`, `controllers` et `routes` sont intactes :
+
+![Injection SQL et couches inchangées](Screenshots/tp5-injection-et-couches.png)
+
+Comparaison de l'import en masse ligne à ligne (985 ms) et par lot (180 ms) :
+
+![Import en masse](Screenshots/tp5-import-masse.png)
