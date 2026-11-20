@@ -1,4 +1,4 @@
-import { ValidationError } from "../errors.js";
+import { ConflictError, ValidationError } from "../errors.js";
 
 export function createInspectionsService({ hivesService, inspectionsRepository }) {
   return {
@@ -14,7 +14,7 @@ export function createInspectionsService({ hivesService, inspectionsRepository }
           `Le hive_id du corps (${data.hive_id}) ne correspond pas à la ruche ${hive.id}.`,
         );
       }
-      return inspectionsRepository.add({
+      const result = await inspectionsRepository.insertIfAbsent({
         id: data.id,
         hive_id: hive.id,
         author_id: user.id,
@@ -23,6 +23,12 @@ export function createInspectionsService({ hivesService, inspectionsRepository }
         queen_present: data.queen_present ?? null,
         observations: data.observations ?? null,
       });
+      if (!result.created && result.inspection.hive_id !== hive.id) {
+        throw new ConflictError(
+          `L'identifiant ${data.id} est déjà utilisé par une inspection d'une autre ruche.`,
+        );
+      }
+      return result; // { inspection, created }
     },
   };
 }
